@@ -113,13 +113,13 @@
 	// puts (or posts new contacts) the data on the server
 	define_tag('cc_putcontact', -required='input', -optional='by', -namespace=namespace_global);
 		fail_if(!#input->isa('map'), -1, 'Input not a map');
+		local('params' = array('action_by'=(local('by') >> 'owner' ? 'ACTION_BY_OWNER' | 'ACTION_BY_VISITOR')));
 		if(#input !>> 'id');
 			// Post New Contact
-			cc_post('contacts', -data=#input);
+			return(cc_post('contacts', -data=#input, -params=#params));
 		else;
 			// Push Contact
-			cc_post('contacts/' + integer(#input->find('id')), -data=#input);
-
+			return(cc_put('contacts/' + integer(#input->find('id')), -data=#input, -params=#params));
 		/if;
 	/define_tag;
 
