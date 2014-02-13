@@ -103,7 +103,9 @@
 	// Command, URL, and raw output can be accessed using tags below for debugging
 	// Note: Requires [os_process] permission
 	define_tag('cc_get', -required='path', -optional='params', -optional='headers', -optional='token', -namespace=namespace_global);
-		return(cc_curl(-path=#path, -verb='GET', -params=local('params'), -headers=local('headers'), -token=local('token')));
+		local('output' = cc_curl(-path=#path, -verb='GET', -params=local('params'), -headers=local('headers'), -token=local('token')));
+		cc_next(#output);
+		return(#output->isa('map') && #output >> 'results' ? @#output->find('results') | @#output);
 	/define_tag;
 
 	// cc_post(path,data);
@@ -111,9 +113,7 @@
 	// Command, URL, and raw output can be accessed using tags below for debugging
 	// Note: Requires [os_process] permission
 	define_tag('cc_post', -required='path', -required='data', -optional='params', -optional='headers', -optional='token', -namespace=namespace_global);
-		local('output' = cc_curl(-path=#path, -verb='POST', -data=#data, -params=local('params'), -headers=local('headers'), -token=local('token')));
-		cc_next(#output);
-		return(#output->isa('map') && #output >> 'results' ? @#output->find('results') | @#output);
+		return(cc_curl(-path=#path, -verb='POST', -data=#data, -params=local('params'), -headers=local('headers'), -token=local('token')));
 	/define_tag;
 
 	// cc_put(path, data)
@@ -127,7 +127,7 @@
 	// Command, URL, and raw output can be accessed using tags below for debugging
 	// Note: Requires [os_process] permission
 	define_tag('cc_delete', -required='path', -optional='params', -optional='headers', -optional='token', -namespace=namespace_global);
-		return(cc_curl(-path=#path, -verb='GET', -params=local('params'), -headers=local('headers'), -token=local('token')));
+		return(cc_curl(-path=#path, -verb='DELETE', -params=local('params'), -headers=local('headers'), -token=local('token')));
 	/define_tag;
 
 	// cc_curl(verb, path, data, params, headers, token);
@@ -154,25 +154,34 @@
 
 		// Assemble curl command
 		var('_cc_cmd_' = 'curl');
-		$_cc_cmd_->append(' -k'); // INSECURE MODE
-		local_defined('verb') && #verb != '' ? $_cc_cmd_->append(' -X ' + string_uppercase(#verb));
+		$_cc_cmd_->append(' --silent');
+		$_cc_cmd_->append(' --show-error');
+		$_cc_cmd_->append(' --insecure'); // Does not check SSL certificates
+		local_defined('verb') && #verb != '' ? $_cc_cmd_->append(' --request ' + string_uppercase(#verb));
 		if(local_defined('headers') && #headers->isa('array') && #headers->size > 0);
 			iterate(local('headers'), local('h'));
 				!#h->isa('pair') ? loop_continue;
-				$_cc_cmd_->append(' -H "' + encode_sql(#h->first) + ': ' + encode_sql(#h->second) + '"');
+				$_cc_cmd_->append(' --header \'' + #h->first >> '\'' ? encode_sql(#h->first) + ': ' + encode_sql(#h->second) + '\'');
 			/iterate;
 		/if;
-		$_cc_cmd_ !>> '-H "Content-Type' ? $_cc_cmd_->append(' -H "Content-Type: application/json;charset=UTF-8"');
-		$_cc_cmd_ !>> '-H "Authorization' ? $_cc_cmd_->append(' -H "Authorization: Bearer ' + (local_defined('token') && #token != '' ? #token | cc_token()) + '"');
-		local_defined('data') ? $_cc_cmd_->append(' --data "' + encode_sql(#data) + '"');
-		$_cc_cmd_->append(' ' + $_cc_url_);
+		$_cc_cmd_ !>> '-H "Content-Type' ? $_cc_cmd_->append(' --header \'Content-Type: application/json;charset=UTF-8\'');
+		$_cc_cmd_ !>> '-H "Authorization' ? $_cc_cmd_->append(' --header \'Authorization: Bearer ' + encode_sql(local_defined('token') && #token != '' ? #token | cc_token()) + '\'');
+		if(local_defined('data') && (#data->isa('map') || #data->isa('array')));
+			local('json' = encode_json(#data));
+			#json >> '\'' ? local('json' = encode_sql(#json));
+			$_cc_cmd_->append(' --data-binary \'' + #json + '\'');
+		/if;
+		$_cc_cmd_->append(' --url \'' + ($_cc_url_ >> '\'' ? encode_sql($_cc_url_) | $_cc_url_) + '\'');
 
 		// Call shell
 		local('sh' = os_process('/bin/sh', array('-c', $_cc_cmd_)));
 		var('_cc_raw_' = #sh->read);
 
 		// Process output
-		fail_if($_cc_raw_ == '', -1, 'Put Error: "' + #sh->readerror + '"');
+		if($_cc_raw_ == '');
+			local('err' = #sh->readerror);
+			fail_if(#err != '', -1, 'Curl Error: "' + #err + '"');
+		/if;
 		local('output' = decode_json($_cc_raw_));
 		fail_if(#output->isa('array') && #output->get(1)->isa('map') && #output->get(1) >> 'error_message', -1, #output->get(1)->find('error_message') + ' (' + #output->get(1)->find('error_key') + ')');
 		return(@#output);
