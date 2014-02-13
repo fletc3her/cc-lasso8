@@ -13,6 +13,8 @@
 	// Copyright (c) 2014 by Fletcher Sandbeck
 	// Released Under MIT License http://fletc3her.mit-license.org/
 	//
+	// Shell methodology from http://tagswap.net/shell/
+	//
 
 	//
 	// CC Variables
@@ -38,7 +40,6 @@
 	// cc_apikey(key)
 	// cc_token(token)
 	// cc_endpoint(url)
-	// cc_curl(path/to/curl) default '/usr/bin/curl'
 	//
 	define_tag('cc_apikey', -optional='key', -namespace=namespace_global);
 		local_defined('key') ? return(var('_cc_apikey_' = #key));
@@ -54,12 +55,6 @@
 		local_defined('url') ? return(var('_cc_endpoint_' = #url));
 		!var_defined('_cc_endpoint_') ? var('_cc_endpoint_' = 'api.constantcontact.com');
 		return(@$_cc_endpoint_);
-	/define_tag;
-	define_tag('cc_curl', -optional='path', -namespace=namespace_global);
-		local_defined('path') ? return(var('_cc_curl_' = #path));
-		var('_cc_curl_' = os_process('/usr/bin/which', array('curl'))->read);
-		$_cc_curl_ == '' ? $_cc_curl_ = '/usr/bin/curl';
-		return(@$_cc_curl_);
 	/define_tag;
 
 	//
@@ -104,156 +99,51 @@
 	//
 
 	// cc_get(path);
-	// GETs the specified path from the endpoint
-	// Returns the JSON decoded response
-	// Sets $_cc_headers_ to response headers and $_cc_sendheaders_ to sent headers
+	// GETs the specified data from the path at the endpoint
+	// Command, URL, and raw output can be accessed using tags below for debugging
+	// Note: Requires [os_process] permission
 	define_tag('cc_get', -required='path', -optional='params', -optional='headers', -optional='token', -namespace=namespace_global);
-		var('_cc_sendheaders_' = array(
-			'Host' = cc_endpoint,
-			'Accept' = 'application/json',
-			'Content-Type' = 'application/json',
-			'Authorization' = 'Bearer ' + (local_defined('token') ? #token | cc_token())
-		));
-		iterate(local('headers'), local('h'));
-			!#h->isa('pair') ? loop_continue;
-			$_cc_sendheaders_->insert(#h->first = #h->second);
-		/iterate;
-		local('post' = '');
-		local('and' = #post !>> '?' ? '?' | '&');
-		if(local_defined('params'));
-			iterate(#params, local('param'));
-				if(#param->isa('pair'));
-					#post->append(#and + encode_stricturl(#param->first) + '=' + encode_stricturl(#param->second));
-					#and = '&';
-				/if;
-			/iterate;
-		/if;
-		if(#path !>> 'api_key=' && #path !>> 'client_id=');
-			#post->append(#and + 'api_key=' + encode_stricturl(cc_apikey));
-			#and = '&';
-		/if;
-		var('_cc_url_' = 'https://' + cc_endpoint + (#path !>> 'v2/' ? '/v2') + (!#path->beginswith('/') ? '/') + #path + local('post'));
-		var('_cc_raw_' = include_url($_cc_url_, -sendmimeheaders=$_cc_sendheaders_, -retrievemimeheaders='_cc_headers_'));
-		$_cc_raw_ == '' ? return;
-		local('output' = decode_json($_cc_raw_));
-		fail_if(#output->isa('array') && #output->get(1)->isa('map') && #output->get(1) >> 'error_message', -1, #output->get(1)->find('error_message') + ' (' + #output->get(1)->find('error_key') + ')');
+		local('output' = cc_curl(-path=#path, -verb='GET', -params=local('params'), -headers=local('headers'), -token=local('token')));
 		cc_next(#output);
 		return(#output->isa('map') && #output >> 'results' ? @#output->find('results') | @#output);
 	/define_tag;
 
 	// cc_post(path,data);
 	// POSTs the specified data to the path at the endpoint
+	// Command, URL, and raw output can be accessed using tags below for debugging
 	// Note: Requires [os_process] permission
-	// Sets $_cc_headers_ to response headers and $_cc_sendheaders_ to sent headers
 	define_tag('cc_post', -required='path', -required='data', -optional='params', -optional='headers', -optional='token', -namespace=namespace_global);
-		var('_cc_sendheaders_' = array(
-			'Host' = cc_endpoint,
-			'Accept' = 'application/json',
-			'Content-Type' = 'application/json',
-			'Authorization' = 'Bearer ' + (local_defined('token') ? #token | cc_token())
-		));
-		iterate(local('headers'), local('h'));
-			!#h->isa('pair') ? loop_continue;
-			$_cc_sendheaders_->insert(#h->first = #h->second);
-		/iterate;
-		local('post' = '');
-		local('and' = #post !>> '?' ? '?' | '&');
-		if(local_defined('params'));
-			iterate(#params, local('param'));
-				if(#param->isa('pair'));
-					#post->append(#and + encode_stricturl(#param->first) + '=' + encode_stricturl(#param->second));
-					#and = '&';
-				/if;
-			/iterate;
-		/if;
-		if(#path !>> 'api_key=' && #path !>> 'client_id=');
-			#post->append(#and + 'api_key=' + encode_stricturl(cc_apikey));
-			#and = '&';
-		/if;
-		var('_cc_url_' = 'https://' + cc_endpoint + (#path !>> 'v2/' ? '/v2') + (!#path->beginswith('/') ? '/') + #path + local('post'));
-		var('_cc_curl_' = array('--silent', '--include', '--request', 'PUT'));
-		iterate($_cc_sendheaders_,local('h'));
-			$_cc_curl_->insert('--header', '"' + #h->first + ': ' + #h->second + '"');
-		/iterate;
-		$_cc_curl_->insert('--data', '"' + encode_sql(#data) + '"');
-		$_cc_curl_->insert('--url', $_cc_url_);
-		var('_cc_raw_' = os_process(cc_curl, $_cc_curl_)->read);
-		$_cc_raw_ == '' ? return;
-		local('output' = decode_json($_cc_raw_));
-		fail_if(#output->isa('array') && #output->get(1)->isa('map') && #output->get(1) >> 'error_message', -1, #output->get(1)->find('error_message') + ' (' + #output->get(1)->find('error_key') + ')');
-		return(@#output);
+		return(cc_curl(-path=#path, -verb='POST', -data=#data, -params=local('params'), -headers=local('headers'), -token=local('token')));
 	/define_tag;
 
-	// cc_put(path,data);
-	// PUTs the specified data to the path at the endpoint
-	// Note: Requires [os_process] permission
-	// Sets $_cc_headers_ to response headers and $_cc_sendheaders_ to sent headers
+	// cc_put(path, data)
+	// PUTs the specified data at the specified path
 	define_tag('cc_put', -required='path', -required='data', -optional='params', -optional='headers', -optional='token', -namespace=namespace_global);
-		var('_cc_sendheaders_' = array(
-			'Host' = cc_endpoint,
-			'Accept' = 'application/json',
-			'Content-Type' = 'application/json',
-			'Authorization' = 'Bearer ' + (local_defined('token') ? #token | cc_token())
-		));
-		iterate(local('headers'), local('h'));
-			!#h->isa('pair') ? loop_continue;
-			$_cc_sendheaders_->insert(#h->first = #h->second);
-		/iterate;
-		local('post' = '');
-		local('and' = #post !>> '?' ? '?' | '&');
-		if(local_defined('params'));
-			iterate(#params, local('param'));
-				if(#param->isa('pair'));
-					#post->append(#and + encode_stricturl(#param->first) + '=' + encode_stricturl(#param->second));
-					#and = '&';
-				/if;
-			/iterate;
-		/if;
-		if(#path !>> 'api_key=' && #path !>> 'client_id=');
-			#post->append(#and + 'api_key=' + encode_stricturl(cc_apikey));
-			#and = '&';
-		/if;
-		var('_cc_url_' = 'https://' + cc_endpoint + (#path !>> 'v2/' ? '/v2') + (!#path->beginswith('/') ? '/') + #path + local('post'));
-		var('_cc_curl_' = array('--silent', '--include', '--request', 'PUT'));
-		iterate($_cc_sendheaders_,local('h'));
-			$_cc_curl_->insert('--header', '"' + #h->first + ': ' + #h->second + '"');
-		/iterate;
-		$_cc_curl_->insert('--data', '"' + encode_sql(#data) + '"');
-		$_cc_curl_->insert('--url', $_cc_url_);
-		$_cc_raw_ == '' ? return;
-		var('_cc_raw_' = os_process(cc_curl, $_cc_curl_)->read);
-		local('output' = decode_json($_cc_raw_));
-		fail_if(#output->isa('array') && #output->get(1)->isa('map') && #output->get(1) >> 'error_message', -1, #output->get(1)->find('error_message') + ' (' + #output->get(1)->find('error_key') + ')');
-		return(@#output);
+		return(cc_curl(-path=#path, -verb='PUT', -data=#data, -params=local('params'), -headers=local('headers'), -token=local('token')));
 	/define_tag;
 
-	// cc_delete(path);
-	// DELETEs the specified path at the endpoint
+	// cc_delete(path, data)
+	// DELETEs the specified data from the specified path
+	// Command, URL, and raw output can be accessed using tags below for debugging
 	// Note: Requires [os_process] permission
-	// Returns the xml response
 	define_tag('cc_delete', -required='path', -optional='params', -optional='headers', -optional='token', -namespace=namespace_global);
-		var('_cc_sendheaders_' = array(
-			'Host' = cc_endpoint,
-			'Accept' = 'application/json',
-			'Content-Type' = 'application/json',
-			'Authorization' = 'Bearer ' + (local_defined('token') ? #token | cc_token())
-		));
-		iterate(local('headers'), local('h'));
-			!#h->isa('pair') ? loop_continue;
-			$_cc_sendheaders_->insert(#h->first = #h->second);
-		/iterate;
-		var('_cc_curl_' = array('curl', '--silent', '--include', '--request', 'DELETE'));
-		iterate($_cc_sendheaders_,local('h'));
-			$_cc_curl_->insert('--header', '"' + #h->first + ': ' + #h->second + '"');
-		/iterate;
+		return(cc_curl(-path=#path, -verb='DELETE', -params=local('params'), -headers=local('headers'), -token=local('token')));
+	/define_tag;
+
+	// cc_curl(verb, path, data, params, headers, token);
+	// Calls curl with the specified verb (GET, POST, PUT, DELETE), path, data, params, and headers
+	// Command, URL, and raw output can be accessed using tags below for debugging
+	// Note: Requires [os_process] permission
+	define_tag('cc_curl', -required='path', -optional='verb', -optional='data', -optional='params', -optional='headers', -optional='token', -namespace=namespace_global);
+
+		// Assemble URL
 		local('post' = '');
 		local('and' = #post !>> '?' ? '?' | '&');
-		if(local_defined('params'));
-			iterate(#params, local('param'));
-				if(#param->isa('pair'));
-					#post->append(#and + encode_stricturl(#param->first) + '=' + encode_stricturl(#param->second));
-					#and = '&';
-				/if;
+		if(local_defined('params') && #params->isa('array') && #params->size > 0);
+			iterate(#params, local('p'));
+				!#p->isa('pair') ? loop_continue;
+				#post->append(#and + encode_stricturl(#p->first) + '=' + encode_stricturl(#p->second));
+				#and = '&';
 			/iterate;
 		/if;
 		if(#path !>> 'api_key=' && #path !>> 'client_id=');
@@ -261,9 +151,37 @@
 			#and = '&';
 		/if;
 		var('_cc_url_' = 'https://' + cc_endpoint + (#path !>> 'v2/' ? '/v2') + (!#path->beginswith('/') ? '/') + #path + local('post'));
-		$_cc_curl_->insert('--url', $_cc_url_);
-		var('_cc_raw_' = os_process(cc_curl, $_cc_curl)->read);
-		$_cc_raw_ == '' ? return;
+
+		// Assemble curl command
+		var('_cc_cmd_' = 'curl');
+		$_cc_cmd_->append(' --silent');
+		$_cc_cmd_->append(' --show-error');
+		$_cc_cmd_->append(' --insecure'); // Does not check SSL certificates
+		local_defined('verb') && #verb != '' ? $_cc_cmd_->append(' --request ' + string_uppercase(#verb));
+		if(local_defined('headers') && #headers->isa('array') && #headers->size > 0);
+			iterate(local('headers'), local('h'));
+				!#h->isa('pair') ? loop_continue;
+				$_cc_cmd_->append(' --header \'' + #h->first >> '\'' ? encode_sql(#h->first) + ': ' + encode_sql(#h->second) + '\'');
+			/iterate;
+		/if;
+		$_cc_cmd_ !>> '-H "Content-Type' ? $_cc_cmd_->append(' --header \'Content-Type: application/json;charset=UTF-8\'');
+		$_cc_cmd_ !>> '-H "Authorization' ? $_cc_cmd_->append(' --header \'Authorization: Bearer ' + encode_sql(local_defined('token') && #token != '' ? #token | cc_token()) + '\'');
+		if(local_defined('data') && (#data->isa('map') || #data->isa('array')));
+			local('json' = encode_json(#data));
+			#json >> '\'' ? local('json' = encode_sql(#json));
+			$_cc_cmd_->append(' --data-binary \'' + #json + '\'');
+		/if;
+		$_cc_cmd_->append(' --url \'' + ($_cc_url_ >> '\'' ? encode_sql($_cc_url_) | $_cc_url_) + '\'');
+
+		// Call shell
+		local('sh' = os_process('/bin/sh', array('-c', $_cc_cmd_)));
+		var('_cc_raw_' = #sh->read);
+
+		// Process output
+		if($_cc_raw_ == '');
+			local('err' = #sh->readerror);
+			fail_if(#err != '', -1, 'Curl Error: "' + #err + '"');
+		/if;
 		local('output' = decode_json($_cc_raw_));
 		fail_if(#output->isa('array') && #output->get(1)->isa('map') && #output->get(1) >> 'error_message', -1, #output->get(1)->find('error_message') + ' (' + #output->get(1)->find('error_key') + ')');
 		return(@#output);
@@ -272,18 +190,6 @@
 	//
 	// Debugging
 	//
-
-	// cc_sendheaders();
-	// Returns the headers sent
-	define_tag('cc_sendheaders', -namespace=namespace_global);
-		return(var('_cc_sendheaders_'));
-	/define_tag;
-
-	// cc_headers();
-	// Returns the headers sent back
-	define_tag('cc_headers', -namespace=namespace_global);
-		return(var('_cc_headers_'));
-	/define_tag;
 
 	// cc_raw();
 	// Returns the raw result
@@ -295,6 +201,12 @@
 	// Returns the raw called URL
 	define_tag('cc_url', -namespace=namespace_global);
 		return(var('_cc_url_'));
+	/define_tag;
+
+	// cc_cmd();
+	// Returns the raw curl command
+	define_tag('cc_cmd', -namespace=namespace_global);
+		return(var('_cc_cmd_'));
 	/define_tag;
 
 ?>
