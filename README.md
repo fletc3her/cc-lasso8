@@ -19,20 +19,20 @@ processing, basic Contact and Contact List functionality.
 
 Usage
 =========
-
-  cc_apikey('abcdefghijklmnopqrstuvwxyz');
-  cc_token('1234567890-1234-1234-1234-1234567890');
+```lasso
+cc_apikey('abcdefghijklmnopqrstuvwxyz');
+cc_token('1234567890-1234-1234-1234-1234567890');
   
-  // Find array of contacts with email address
-  cc_findcontacts(-email='john@example.com');
+// Find array of contacts with email address
+cc_findcontacts(-email='john@example.com');
   
-  // Get one contact, modify, and put changes
-  var('mycontact' = cc_getcontact(12345));
-  $mycontact->insert('status'='ACTIVE');
-  var('mycontact' = cc_putcontact($mycontact, -by='visitor'));
+// Get one contact, modify, and put changes
+var('mycontact' = cc_getcontact(12345));
+$mycontact->insert('status'='ACTIVE');
+var('mycontact' = cc_putcontact($mycontact, -by='visitor'));
 
-  // Get array of contact lists
-  var('mylists' = cc_findlists());
+// Get array of contact lists
+var('mylists' = cc_findlists());
 
-  ... more to come ...
-  
+// ... more to come ...
+```
