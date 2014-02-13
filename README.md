@@ -10,15 +10,21 @@ automatically converted to/from native Lasso arrays and maps.
 http://developer.constantcontact.com/docs/developer-guides/overview-of-api-endpoints.html
 
 
+License
+--------
+Copyright (c) 2014 by Fletcher Sandbeck.
+Released Under MIT License http://fletc3her.mit-license.org/
+
+
 Release Notes
-=========
+--------
 
 2014-02-13 - Initial release including CURL-based actions, error
 processing, basic Contact and Contact List functionality.
 
 
 Usage
-=========
+--------
 ```lasso
 cc_apikey('abcdefghijklmnopqrstuvwxyz');
 cc_token('1234567890-1234-1234-1234-1234567890');
