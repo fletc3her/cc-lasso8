@@ -29,17 +29,19 @@
 	// -status='optout' // Do Not Mail
 	// -status='removed' // Unsubscribed
 	define_tag('cc_findcontacts', -optional='email', -optional='listid', -optional='modified_since', -optional='status', -optional='limit', -optional='next', -namespace=namespace_global);
+		local('params' = array);
 		if(local_defined('listid') && #listid != '');
 			local('path' = 'lists/' + integer(#listid) + '/contacts');
 		else;
 			local('path' = 'contacts');
+			local_defined('email') && #email != '' ? #params->insert('email'=#email);
+			local_defined('status') && #status != '' ? #params->insert('status'=#status);
 		/if;
-		local('params' = array);
-		local_defined('email') && #email != '' ? #params->insert('email'=#email);
 		local_defined('modified_since') && #modified_since != '' ? #params->insert('modified_since'=cc_date(#modified_since));
-		local_defined('status') && #status != '' ? #params->insert('status'=#status);
 		local_defined('limit') && #limit != '' ? #params->insert('limit'=#limit);
-		local_defined('next') && #next != '' ? #params->insert('next'=#next);
+		if(local_defined('next') && #next != '');
+			#params = array('next'=#next);
+		/if;
 		return(cc_get(#path, -params=#params));
 	/define_tag;
 
@@ -53,6 +55,37 @@
 	// cc_getcontact(cc_findcontacts('email'='john@doe.com')->get(1)->find('id'));
 	define_tag('cc_getcontact', -required='contactid', -namespace=namespace_global);
 		return(cc_get('contacts/' + integer(#contactid)));
+	/define_tag;
+
+	//
+	// Get Contact Tracking
+	//
+	// http://developer.constantcontact.com/docs/contact-tracking/contact-tracking-all-activities-api.html
+	//
+	// cc_getcontacttracking('35')
+	// The ID is be a contact number (35), the ID attribute of a Contact record
+	// cc_getcontact(cc_findcontacts('email'='john@doe.com')->get(1)->find('id'));
+	// -contactid={contactid}
+	// -type={bounces, clicks, forwards, opens, reports/summary, reports/summarybycampaign, sends, unsubscribes} (default: all)
+	// -created_since=date
+	// -limit=50 // Max records, default 50
+	// -next={pagination} // Use cc_next to extract from results
+	define_tag('cc_getcontacttracking', -required='contactid', -optional='type', -optional='created_since', -optional='limit', -optional='next', -namespace=namespace_global);
+		local('path' = 'contacts/' + integer(#contactid) + '/tracking');
+		if(local_defined('type'));
+			if(#type >> 'summarybycampaign');
+				#path->append('/reports/summaryByCampaign');
+			else(#type >> 'summary');
+				#path->append('/reports/summary');
+			else(#type != '');
+				#path->append('/' + string(#type));
+			/if;
+		/if;
+		local('params' = array);
+		local_defined('created_since') && #created_since != '' ? #params->insert('created_since'=cc_date(#created_since));
+		local_defined('limit') && #limit != '' ? #params->insert('limit'=#limit);
+		local_defined('next') && #next != '' ? #params->insert('next'=#next);
+		return(cc_get(#path, -params=#params));
 	/define_tag;
 
 	//
