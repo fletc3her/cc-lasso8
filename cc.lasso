@@ -71,7 +71,7 @@
 			!date->gmt ? return(date_localtogmt(#date)->format('%QT%T'));
 			return(#date->format('%QT%T'));
 		/if;
-		#date->isa('string') && #date !>> 'Z' ? return(date_localtogmt(#date)->format('%QT%T'));
+		#date->isa('string') && #date !>> 'Z' ? return(date(date_localtogmt(date(#date)))->format('%QT%T'));
 		return(date(#date)->format('%QT%T'));
 	/define_tag;
 
@@ -90,7 +90,7 @@
 				return(var('_cc_next_' = string_replaceregexp(#data, -find='.*next=([a-zA-Z0-9]+)', -replace='\\1')));
 			/if;
 		/if;
-		return(@var('_cc_next_'));
+		return(var('_cc_next_'));
 	/define_tag;
 
 
@@ -112,8 +112,8 @@
 	// POSTs the specified data to the path at the endpoint
 	// Command, URL, and raw output can be accessed using tags below for debugging
 	// Note: Requires [os_process] permission
-	define_tag('cc_post', -required='path', -required='data', -optional='params', -optional='headers', -optional='token', -namespace=namespace_global);
-		return(cc_curl(-path=#path, -verb='POST', -data=#data, -params=local('params'), -headers=local('headers'), -token=local('token')));
+	define_tag('cc_post', -required='path', -optional='data', -optional='params', -optional='form', -optional='headers', -optional='token', -namespace=namespace_global);
+		return(cc_curl(-path=#path, -verb='POST', -data=local('data'), -params=local('params'), -form=local('form'), -headers=local('headers'), -token=local('token')));
 	/define_tag;
 
 	// cc_put(path, data)
@@ -134,7 +134,7 @@
 	// Calls curl with the specified verb (GET, POST, PUT, DELETE), path, data, params, and headers
 	// Command, URL, and raw output can be accessed using tags below for debugging
 	// Note: Requires [os_process] permission
-	define_tag('cc_curl', -required='path', -optional='verb', -optional='data', -optional='params', -optional='headers', -optional='token', -namespace=namespace_global);
+	define_tag('cc_curl', -required='path', -optional='verb', -optional='data', -optional='params', -optional='form', -optional='headers', -optional='token', -namespace=namespace_global);
 
 		// Assemble URL
 		local('post' = '');
@@ -158,14 +158,20 @@
 		$_cc_cmd_->append(' --show-error');
 		$_cc_cmd_->append(' --insecure'); // Does not check SSL certificates
 		local_defined('verb') && #verb != '' ? $_cc_cmd_->append(' --request ' + string_uppercase(#verb));
-		if(local_defined('headers') && #headers->isa('array') && #headers->size > 0);
+		if(local_defined('headers') && (#headers->isa('array') || #headers->isa('map')) && #headers->size > 0);
 			iterate(local('headers'), local('h'));
 				!#h->isa('pair') ? loop_continue;
 				$_cc_cmd_->append(' --header \'' + #h->first >> '\'' ? encode_sql(#h->first) + ': ' + encode_sql(#h->second) + '\'');
 			/iterate;
 		/if;
-		$_cc_cmd_ !>> '-H "Content-Type' ? $_cc_cmd_->append(' --header \'Content-Type: application/json;charset=UTF-8\'');
-		$_cc_cmd_ !>> '-H "Authorization' ? $_cc_cmd_->append(' --header \'Authorization: Bearer ' + encode_sql(local_defined('token') && #token != '' ? #token | cc_token()) + '\'');
+		if(local_defined('form') && (#form->isa('array') || #form->isa('map')) && #form->size > 0);
+			iterate(local('form'), local('f'));
+				!#f->isa('pair') ? loop_continue;
+				$_cc_cmd_->append(' --form \'' + #f->first >> '\'' ? encode_sql(#f->first) + ': ' + encode_sql(#f->second) + '\'');
+			/iterate;
+		/if;
+		$_cc_cmd_ !>> '--header "Content-Type' ? $_cc_cmd_->append(' --header \'Content-Type: application/json;charset=UTF-8\'');
+		$_cc_cmd_ !>> '--header "Authorization' ? $_cc_cmd_->append(' --header \'Authorization: Bearer ' + encode_sql(local_defined('token') && #token != '' ? #token | cc_token()) + '\'');
 		if(local_defined('data') && (#data->isa('map') || #data->isa('array')));
 			local('json' = encode_json(#data));
 			#json >> '\'' ? local('json' = encode_sql(#json));
@@ -183,7 +189,7 @@
 			fail_if(#err != '', -1, 'Curl Error: "' + #err + '"');
 		/if;
 		local('output' = decode_json($_cc_raw_));
-		fail_if(#output->isa('array') && #output->get(1)->isa('map') && #output->get(1) >> 'error_message', -1, #output->get(1)->find('error_message') + ' (' + #output->get(1)->find('error_key') + ')');
+		fail_if(#output->isa('array') && #output->size > 0 && #output->get(1)->isa('map') && #output->get(1) >> 'error_message', -1, #output->get(1)->find('error_message') + ' (' + #output->get(1)->find('error_key') + ')');
 		return(@#output);
 	/define_tag;
 
