@@ -25,12 +25,15 @@
 	// -status='running' // Mail is currently being sent (read-only)
 	// -status='sent' // Mail has been sent (read-only)
 	// -status='scheduled' // Scheduled for future send (modify by setting to draft)
-	define_tag('cc_findcampaigns');
+	define_tag('cc_findcampaigns', -optional='modified_since', -optional='limit', -optional='status', -optional='next');
+		local('params' = array);
 		local_defined('modified_since') && #modified_since != '' ? #params->insert('modified_since'=cc_date(#modified_since));
 		local_defined('status') && #status != '' ? #params->insert('status'=#status);
 		local_defined('limit') && #limit != '' ? #params->insert('limit'=#limit);
-		local_defined('next') && #next != '' ? #params->insert('next'=#next);
-		return(cc_get('campaigns', -params=#params));
+		if(local_defined('next') && #next != '');
+			#params = array('next'=#next);
+		/if;
+		return(cc_get('emailmarketing/campaigns', -params=#params));
 	/define_tag;
 
 	//
@@ -62,7 +65,7 @@
 	//
 	// Note - Do not add an ID member to a new campaign or it will overwrite the campaign with that ID
 	//
-	// cc_newcontact
+	// cc_newcampaign
 	// -email='user@server.com' // or array
 	// -list=1 // list ID or array of IDs
 	define_tag('cc_newcampaign', -required='email', -required='list', -namespace=namespace_global);
@@ -86,12 +89,53 @@
 		fail_if(!#input->isa('map'), -1, 'Input not a map');
 		if(#input !>> 'id');
 			// Post New Campaign
-			cc_post('emailmarketing/campaign', -data=#input);
+			cc_post('emailmarketing/campaigns', -data=#input);
 		else;
 			// Push Campaign
-			cc_post('emailmarketing/campaign/' + integer(#input->find('id')), -data=#input);
-
+			cc_post('emailmarketing/campaigns/' + integer(#input->find('id')), -data=#input);
 		/if;
 	/define_tag;
+
+	//
+	// Get Campaign Preview
+	//
+	// cc_getcampaignpreview('3');
+	// The ID can be a campaign number 3, the ID attribute of a Campaign record
+	// cc_getcampaignpreview(cc_findcampaigns()->get(1)->find('id'));
+	define_tag('cc_getcampaignpreview', -required='campaignid');
+		return(cc_get('emailmarketing/campaigns/' + integer(#campaignid) + '/preview'));
+	/define_tag;
+
+	//
+	// Send Campaign Test
+	//
+	// cc_testcampaign('3', -email_addresses='test@example.com', -format='html_and_text', -personal_message='testing');
+	// The ID can be a campaign number 3, the ID attribute of a Campaign record
+	// cc_testcampaign(cc_findcampaigns()->get(1)->find('id'), ...);
+	define_tag('cc_testcampaign', -required='campaignid', -optional='email_addresses', -optional='format', -optional='personal_message');
+		local('required' = array('email_addresses','format','personal_message'));
+		local('form' = map);
+		iterate(params, local('param'));
+			!#param->isa('pair') ? loop_continue;
+			local('name' = string(#param->first)->removeleading('-')&);
+			local('value' = #param->second);
+			#required->removeall(#name);
+			if(#name == 'email_addresses');
+				iterate(#value->isa('array') ? #value | array(#value), local('v'));
+					if(#form >> #name);
+						#form->find(#name)->insert(#v);
+					else;
+						#form->insert(#name = array(#v));
+					/if;
+				/iterate;
+			else;
+				#form->insert(#name = #value);
+			/if;
+		/iterate;
+		fail_if(#required->size > 0, -1, 'Testing campaign requires field' + (#required->size > 1 ? 's') + ': ' + #required->join(', '));
+		// Push Campaign
+		cc_post('emailmarketing/campaigns/' + integer(#campaignid) + '/tests', -data=#form);
+	/define_tag;
+
 
 ?>
