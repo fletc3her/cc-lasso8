@@ -42,7 +42,7 @@
 		if(local_defined('next') && #next != '');
 			#params = array('next'=#next);
 		/if;
-		return(cc_get(#path, -params=#params));
+		return(cc_get(#path, -params=#params, -retry=5));
 	/define_tag;
 
 	//
