@@ -93,6 +93,13 @@
 		return(var('_cc_next_'));
 	/define_tag;
 
+	define_tag('cc_encode', -required='data', -namespace=namespace_global);
+	//	#data >> '\\' ? #data->replace('\\', '\\\\');
+		#data >> '\'' ? #data->replace('\'', '\\\'');
+	//	#data >> '"' ? #data->replace('\"', '\\\\"');
+		#data >> '!' ? #data->replace('!', '\\!');
+		return(@#data);
+	/define_tag;
 
 	//
 	// AWS Verbs
@@ -134,7 +141,82 @@
 	// Calls curl with the specified verb (GET, POST, PUT, DELETE), path, data, params, and headers
 	// Command, URL, and raw output can be accessed using tags below for debugging
 	// Note: Requires [os_process] permission
-	define_tag('cc_curl', -required='path', -optional='verb', -optional='data', -optional='params', -optional='form', -optional='headers', -optional='token', -namespace=namespace_global);
+	define_tag('cc_curl', -required='path', -optional='verb', -optional='data', -optional='params', -optional='form', -optional='headers', -optional='token', -optional='retry', -namespace=namespace_global);
+
+		// Assemble URL
+		local('post' = '');
+		local('and' = #post !>> '?' ? '?' | '&');
+		if(local_defined('params') && #params->isa('array') && #params->size > 0);
+			iterate(#params, local('p'));
+				!#p->isa('pair') ? loop_continue;
+				#post->append(#and + encode_stricturl(#p->first) + '=' + encode_stricturl(#p->second));
+				#and = '&';
+			/iterate;
+		/if;
+		if(#path !>> 'api_key=' && #path !>> 'client_id=');
+			#post->append(#and + 'api_key=' + encode_stricturl(cc_apikey));
+			#and = '&';
+		/if;
+		var('_cc_url_' = 'https://' + cc_endpoint + (#path !>> 'v2/' ? '/v2') + (!#path->beginswith('/') ? '/') + #path + local('post'));
+
+		// Assemble curl command
+		var('_cc_cmd_' = array);
+		local('has' = array);
+		$_cc_cmd_->insert('--silent');
+		$_cc_cmd_->insert('--show-error');
+		$_cc_cmd_->insert('--insecure'); // Does not check SSL certificates
+		local_defined('verb') && #verb != '' ? $_cc_cmd_->insert('--request') & insert(string_uppercase(#verb));
+		if(local_defined('headers') && (#headers->isa('array') || #headers->isa('map')) && #headers->size > 0);
+			iterate(local('headers'), local('h'));
+				!#h->isa('pair') ? loop_continue;
+				#has->insert(#h->first);
+				$_cc_cmd_->insert('--header') & insert(#h->first + ': ' + #h->second);
+			/iterate;
+		/if;
+		if(local_defined('form') && (#form->isa('array') || #form->isa('map')) && #form->size > 0);
+			iterate(local('form'), local('f'));
+				!#f->isa('pair') ? loop_continue;
+				$_cc_cmd_->insert('--form') & insert(#f->first + ': ' + #f->second);
+			/iterate;
+		/if;
+		#has !>> 'Content-Type' ? $_cc_cmd_->insert('--header') & insert('Content-Type: application/json;charset=UTF-8');
+		#has !>> 'Authorization' ? $_cc_cmd_->insert('--header') & insert('Authorization: Bearer ' + (local_defined('token') && #token != '' ? #token | cc_token()));
+		if(local_defined('data') && (#data->isa('map') || #data->isa('array')));
+			$_cc_cmd_->insert('--data-binary') & insert(encode_json(#data));
+		/if;
+		$_cc_cmd_->insert('--url') & insert($_cc_url_);
+
+		loop(math_max(integer(local('retry')),1));
+			// Call shell
+			local('sh' = os_process(cc_curlpath, $_cc_cmd_));
+			var('_cc_raw_' = #sh->read);
+			// Process output
+			if($_cc_raw_ == '');
+				local('err' = #sh->readerror);
+				fail_if(#err != '', -1, 'Curl Error: "' + #err + '"');
+				sleep(1000); // retry delay
+			/if;
+		/loop;
+		local('output' = decode_json($_cc_raw_));
+		fail_if(#output->isa('array') && #output->size > 0 && #output->get(1)->isa('map') && #output->get(1) >> 'error_message', -1, #output->get(1)->find('error_message') + ' (' + #output->get(1)->find('error_key') + ')');
+		return(@#output);
+	/define_tag;
+
+	define_tag('cc_curlpath', -optional='in', -namespace=namespace_global);
+		local('out' = string(if_empty(local('in'),var('_cc_curlpath_'))));
+		if(#out == '');
+			local('sh' = os_process('/usr/bin/curl', array('-V')));
+			#sh->read != '' ? local('out' = '/usr/bin/curl');
+		/if;
+		if(#out == '');
+			local('sh' = os_process('/bin/sh', array('-l', '-c','which curl')));
+			local('out' = #sh->read);
+		/if;
+		#out != '' ? var('_cc_curlpath_' = #out);
+		return(@$_cc_curlpath_);
+	/define_tag;
+
+	define_tag('cc_sh_curl', -required='path', -optional='verb', -optional='data', -optional='params', -optional='form', -optional='headers', -optional='token', -namespace=namespace_global);
 
 		// Assemble URL
 		local('post' = '');
@@ -161,25 +243,24 @@
 		if(local_defined('headers') && (#headers->isa('array') || #headers->isa('map')) && #headers->size > 0);
 			iterate(local('headers'), local('h'));
 				!#h->isa('pair') ? loop_continue;
-				$_cc_cmd_->append(' --header \'' + #h->first >> '\'' ? encode_sql(#h->first) + ': ' + encode_sql(#h->second) + '\'');
+				$_cc_cmd_->append(' --header \'' + cc_encode(#h->first) + ': ' + cc_encode(#h->second) + '\'');
 			/iterate;
 		/if;
 		if(local_defined('form') && (#form->isa('array') || #form->isa('map')) && #form->size > 0);
 			iterate(local('form'), local('f'));
 				!#f->isa('pair') ? loop_continue;
-				$_cc_cmd_->append(' --form \'' + #f->first >> '\'' ? encode_sql(#f->first) + ': ' + encode_sql(#f->second) + '\'');
+				$_cc_cmd_->append(' --form \'' + cc_encode(#f->first) + ': ' + cc_encode(#f->second) + '\'');
 			/iterate;
 		/if;
 		$_cc_cmd_ !>> '--header "Content-Type' ? $_cc_cmd_->append(' --header \'Content-Type: application/json;charset=UTF-8\'');
-		$_cc_cmd_ !>> '--header "Authorization' ? $_cc_cmd_->append(' --header \'Authorization: Bearer ' + encode_sql(local_defined('token') && #token != '' ? #token | cc_token()) + '\'');
+		$_cc_cmd_ !>> '--header "Authorization' ? $_cc_cmd_->append(' --header \'Authorization: Bearer ' + cc_encode(local_defined('token') && #token != '' ? #token | cc_token()) + '\'');
 		if(local_defined('data') && (#data->isa('map') || #data->isa('array')));
-			local('json' = encode_json(#data));
-			#json >> '\'' ? local('json' = encode_sql(#json));
-			$_cc_cmd_->append(' --data-binary \'' + #json + '\'');
+			$_cc_cmd_->append(' --data-binary \'' + cc_encode(encode_json(#data)) + '\'');
 		/if;
-		$_cc_cmd_->append(' --url \'' + ($_cc_url_ >> '\'' ? encode_sql($_cc_url_) | $_cc_url_) + '\'');
+		$_cc_cmd_->append(' --url \'' + cc_encode($_cc_url_) + '\'');
 
 		// Call shell
+		$_cc_cmd_ >> '!' ? $_cc_cmd_->replace('!','\\!');
 		local('sh' = os_process('/bin/sh', array('-c', $_cc_cmd_)));
 		var('_cc_raw_' = #sh->read);
 
@@ -192,6 +273,7 @@
 		fail_if(#output->isa('array') && #output->size > 0 && #output->get(1)->isa('map') && #output->get(1) >> 'error_message', -1, #output->get(1)->find('error_message') + ' (' + #output->get(1)->find('error_key') + ')');
 		return(@#output);
 	/define_tag;
+
 
 	//
 	// Debugging
