@@ -26,6 +26,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 Release Notes
 --------
 
+2014-06-14 - Major update including many more tags for campaign, contact, and list actions.  Now uses CURL directly rather than calling an interim shell.
+
 2014-02-13 - Initial release including CURL-based actions, error
 processing, basic Contact and Contact List functionality.
 
