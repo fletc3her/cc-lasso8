@@ -137,5 +137,15 @@
 		cc_post('emailmarketing/campaigns/' + integer(#campaignid) + '/tests', -data=#form);
 	/define_tag;
 
+	//
+	// Get Campaign Schedules
+	//
+	// cc_getcampaignschedules('3');
+	// The ID can be a campaign number 3, the ID attribute of a Campaign record
+	// cc_getcampaignschedules(cc_findcampaigns()->get(1)->find('id'));
+	define_tag('cc_getcampaignschedules', -required='campaignid');
+		return(cc_get('emailmarketing/campaigns/' + integer(#campaignid) + '/campaigns'));
+	/define_tag;
+
 
 ?>
