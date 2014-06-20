@@ -102,7 +102,9 @@
 		/if;
 		if(#out == '');
 			local('sh' = os_process('/bin/sh', array('-l', '-c','which curl')));
-			local('out' = #sh->read);
+			#sh->closewrite();
+			local('out' = #sh->read(-timeout=1));
+			#sh->close;
 		/if;
 		#out != '' ? var('_cc_curlpath_' = #out);
 		return(@$_cc_curlpath_);
@@ -169,9 +171,10 @@
 		// Assemble curl command
 		var('_cc_cmd_' = array);
 		local('has' = array);
-		$_cc_cmd_->insert('--silent');
-		$_cc_cmd_->insert('--show-error');
 		$_cc_cmd_->insert('--insecure'); // Does not check SSL certificates
+		$_cc_cmd_->insert('--retry') & insert('5'); // Retries on transient errors
+		$_cc_cmd_->insert('--show-error'); // Outputs error messages
+		$_cc_cmd_->insert('--silent'); // Otherwise silent
 		local_defined('verb') && #verb != '' ? $_cc_cmd_->insert('--request') & insert(string_uppercase(#verb));
 		if(local_defined('headers') && (#headers->isa('array') || #headers->isa('map')) && #headers->size > 0);
 			iterate(local('headers'), local('h'));
@@ -193,18 +196,36 @@
 		/if;
 		$_cc_cmd_->insert('--url') & insert($_cc_url_);
 
-		loop(math_max(integer(local('retry')),1));
+		local('_retry' = math_max(integer(local('retry')),1));
+		local('_maxretry' = 10);
+		local('_delay' = 50); // milliseconds
+		while(#_retry > 0);
+			loop_count > #_maxretry ? loop_abort;
+			loop_count > 1 ? sleep(#_delay); // retry delay
+			loop_count > 1 ? #_delay *= 2; // double delay on each retry
+			#_retry -= 1;
 			// Call shell
-			local('sh' = os_process(cc_curlpath, $_cc_cmd_));
-			var('_cc_raw_' = #sh->read);
+			protect;
+				handle_error;
+					if(error_msg >> 'Interrupted system call');
+						#retry += 1;
+						loop_continue;
+					else;
+						fail(error_code, error_msg);
+					/if;
+				/handle_error;
+				local('sh' = os_process(cc_curlpath, $_cc_cmd_));
+				#sh->closewrite();
+				var('_cc_raw_' = #sh->read(-timeout=5));
+				#sh->close;
+			/protect;
 			// Process output
-			if($_cc_raw_ == '');
-				local('err' = #sh->readerror);
+			if(var('_cc_raw_') == '');
+				local('err' = (#sh->isa('os_process') ? #sh->readerror | ''));
 				fail_if(#err != '', -1, 'Curl Error: "' + #err + '"');
-				sleep(1000); // retry delay
 			/if;
-		/loop;
-		local('output' = decode_json($_cc_raw_));
+		/while;
+		local('output' = decode_json(var('_cc_raw_')));
 		fail_if(#output->isa('array') && #output->size > 0 && #output->get(1)->isa('map') && #output->get(1) >> 'error_message', -1, #output->get(1)->find('error_message') + ' (' + #output->get(1)->find('error_key') + ')');
 		return(@#output);
 	/define_tag;
