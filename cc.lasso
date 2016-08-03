@@ -64,13 +64,26 @@
 	// Manual format (GMT): %Q or %QT%T
 	// http://developer.constantcontact.com/docs/developer-guides/general-considerations.html
 	define_tag('cc_date', -optional='date', -namespace=namespace_global);
-		!local_defined('date') ? return(date->format('%QT%T'));
+		// Default or empty parameter
+		!local_defined('date') || #date == '' ? return(date->format('%QT%T'));
+		// Format date object
 		if(#date->isa('date'));
-			!date->gmt ? return(date_localtogmt(#date)->format('%QT%T'));
+			!#date->gmt ? return(date_localtogmt(#date)->format('%QT%T'));
 			return(#date->format('%QT%T'));
 		/if;
-		#date->isa('string') && #date !>> 'Z' ? return(date(date_localtogmt(date(#date)))->format('%QT%T'));
-		return(date(#date)->format('%QT%T'));
+		// Attempt date conversion
+		local('_d' = date(#date));
+		#_d->isa('date') ? return(cc_date(#_d));
+		// Clean up string
+		local('_s' = string(#date));
+	//	local('_g' = #_s->endswith('Z'));
+		local('_s' = string_replaceregexp(#_s, -find='([0-9])T([0-9])', -replace='\\1 \\2', -ignorecase));
+		#_s -= '.000';
+		#_s->removetrailing('Z');
+		local('_d' = date(#_s));
+		#_d->isa('date') ? return(cc_date(#_d));
+		// Failure
+		fail(-1, 'Invalid date ' + #date);
 	/define_tag;
 
 	// cc_next(data)
