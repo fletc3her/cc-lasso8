@@ -64,24 +64,41 @@
 	// Manual format (GMT): %Q or %QT%T
 	// http://developer.constantcontact.com/docs/developer-guides/general-considerations.html
 	define_tag('cc_date', -optional='date', -namespace=namespace_global);
-		// Default or empty parameter
-		!local_defined('date') || #date == '' ? return(date->format('%QT%T'));
-		// Format date object
-		if(#date->isa('date'));
-			!#date->gmt ? return(date_localtogmt(#date)->format('%QT%T'));
-			return(#date->format('%QT%T'));
+		local('_format' = '%QT%T');
+
+		// Parse date, Return current date for empty parameter
+		if(!local_defined('date') || #date == '');
+			local('_d' = date);
+		else;
+			local('_d' = cc_dateparse(#date));
 		/if;
-		// Attempt date conversion
-		local('_d' = date(#date));
-		#_d->isa('date') ? return(cc_date(#_d));
-		// Clean up string
+
+		// Convert date to GMT
+		!#_d->gmt ? local('_d' = date_localtogmt(#_d));
+
+		return(#_d->format(#_format));
+	/define_tag;
+
+	// cc_dateparse()
+	// Utility function returns Lasso date from date format used by CC
+	// http://developer.constantcontact.com/docs/developer-guides/general-considerations.html
+	define_tag('cc_dateparse', -optional='date', -namespace=namespace_global);
+		// Already a date object
+		#date->isa('date') ? return(#date);
+
+		// Clean up standard CC date string
 		local('_s' = string(#date));
-	//	local('_g' = #_s->endswith('Z'));
+		local('_g' = #_s->endswith('Z'));
 		local('_s' = string_replaceregexp(#_s, -find='([0-9])T([0-9])', -replace='\\1 \\2', -ignorecase));
 		#_s -= '.000';
-		#_s->removetrailing('Z');
+		#_s->replace('Z',' GMT');
 		local('_d' = date(#_s));
-		#_d->isa('date') ? return(cc_date(#_d));
+		#_d->isa('date') ? return(#_d);
+
+		// Otherwise attempt a default conversion
+		local('_d' = date(#date));
+		#_d->isa('date') ? return(#_d);
+
 		// Failure
 		fail(-1, 'Invalid date ' + #date);
 	/define_tag;
