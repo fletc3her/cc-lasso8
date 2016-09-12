@@ -156,7 +156,7 @@
 			local('value' = #param->second);
 			if(#name == 'email_address');
 				iterate(#value->isa('array') ? #value | array(#value), local('temp'));
-					#input->insert('email_addresses')->removeall & insert(map('email_address'=#temp));
+					#input->find('email_addresses')->removeall & insert(map('email_address'=#temp));
 				/iterate;
 				#changed = true;
 			else(#name == 'list' || #name == 'lists');
