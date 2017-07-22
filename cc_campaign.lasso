@@ -47,6 +47,16 @@
 	/define_tag;
 
 	//
+	// Get Campaign Tracking Summary
+	//
+	// cc_getcampaigntrackingsummary('3');
+	// The ID can be a campaign number 3, the ID attribute of a Campaign record
+	// cc_getcampaign(cc_findcampaigns()->get(1)->find('id'));
+	define_tag('cc_getcampaigntrackingsummary', -required='campaignid');
+		return(cc_get('emailmarketing/campaigns/' + integer(#campaignid) + '/tracking/reports/summary'));
+	/define_tag;
+
+	//
 	// New Campaign Template
 	//
 	// Returns a minimal template map for a new campaign. Requires the following parameters:
