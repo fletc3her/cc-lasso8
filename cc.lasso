@@ -205,6 +205,7 @@
 		$_cc_cmd_->insert('--retry') & insert('5'); // Retries on transient errors
 		$_cc_cmd_->insert('--show-error'); // Outputs error messages
 		$_cc_cmd_->insert('--silent'); // Otherwise silent
+		$_cc_cmd_->insert('--tlsv1.2'); // Force TLS 1.2
 		local_defined('verb') && #verb != '' ? $_cc_cmd_->insert('--request') & insert(string_uppercase(#verb));
 		if(local_defined('headers') && (#headers->isa('array') || #headers->isa('map')) && #headers->size > 0);
 			iterate(local('headers'), local('h'));
