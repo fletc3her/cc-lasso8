@@ -25,7 +25,7 @@
 	// -status='running' // Mail is currently being sent (read-only)
 	// -status='sent' // Mail has been sent (read-only)
 	// -status='scheduled' // Scheduled for future send (modify by setting to draft)
-	define_tag('cc_findcampaigns', -optional='modified_since', -optional='limit', -optional='status', -optional='next');
+	define_tag('cc_findcampaigns', -optional='modified_since', -optional='limit', -optional='status', -optional='next', -namespace=namespace_global);
 		local('params' = array);
 		local_defined('modified_since') && #modified_since != '' ? #params->insert('modified_since'=cc_date(#modified_since));
 		local_defined('status') && #status != '' ? #params->insert('status'=#status);
@@ -42,7 +42,7 @@
 	// cc_getcampaign('3');
 	// The ID can be a campaign number 3, the ID attribute of a Campaign record
 	// cc_getcampaign(cc_findcampaigns()->get(1)->find('id'));
-	define_tag('cc_getcampaign', -required='campaignid');
+	define_tag('cc_getcampaign', -required='campaignid', -namespace=namespace_global);
 		return(cc_get('emailmarketing/campaigns/' + integer(#campaignid)));
 	/define_tag;
 
@@ -52,7 +52,7 @@
 	// cc_getcampaigntrackingsummary('3');
 	// The ID can be a campaign number 3, the ID attribute of a Campaign record
 	// cc_getcampaign(cc_findcampaigns()->get(1)->find('id'));
-	define_tag('cc_getcampaigntrackingsummary', -required='campaignid');
+	define_tag('cc_getcampaigntrackingsummary', -required='campaignid', -namespace=namespace_global);
 		return(cc_get('emailmarketing/campaigns/' + integer(#campaignid) + '/tracking/reports/summary'));
 	/define_tag;
 
@@ -70,7 +70,7 @@
 	// -created_since=date
 	// -limit=50 // Max records, default 50
 	// -next={pagination} // Use cc_next to extract from results
-	define_tag('cc_getcampaigntracking', -required='campaignid', -required='type', -optional='modified_since', -optional='limit', -optional='status', -optional='next');
+	define_tag('cc_getcampaigntracking', -required='campaignid', -required='type', -optional='modified_since', -optional='limit', -optional='status', -optional='next', -namespace=namespace_global);
 		fail_if(array('bounces','clicks','forwards','opens','sends','unsubscribes') !>> #type, -1, 'Unknown Campaign Tracking Type');
 		local('params' = array);
 		local_defined('created_since') && #modified_since != '' ? #params->insert('modified_since'=cc_date(#modified_since));
@@ -121,7 +121,7 @@
 	// cc_putcampaign(map)
 	// expects the output of cc_getcampaign (or cc_newcampaign) as input
 	// updates the embedded xml and puts (or posts) the data on the server
-	define_tag('cc_putcampaign', -required='input');
+	define_tag('cc_putcampaign', -required='input', -namespace=namespace_global);
 		fail_if(!#input->isa('map'), -1, 'Input not a map');
 		if(#input !>> 'id');
 			// Post New Campaign
@@ -138,7 +138,7 @@
 	// cc_getcampaignpreview('3');
 	// The ID can be a campaign number 3, the ID attribute of a Campaign record
 	// cc_getcampaignpreview(cc_findcampaigns()->get(1)->find('id'));
-	define_tag('cc_getcampaignpreview', -required='campaignid');
+	define_tag('cc_getcampaignpreview', -required='campaignid', -namespace=namespace_global);
 		return(cc_get('emailmarketing/campaigns/' + integer(#campaignid) + '/preview'));
 	/define_tag;
 
@@ -148,7 +148,7 @@
 	// cc_testcampaign('3', -email_addresses='test@example.com', -format='html_and_text', -personal_message='testing');
 	// The ID can be a campaign number 3, the ID attribute of a Campaign record
 	// cc_testcampaign(cc_findcampaigns()->get(1)->find('id'), ...);
-	define_tag('cc_testcampaign', -required='campaignid', -optional='email_addresses', -optional='format', -optional='personal_message');
+	define_tag('cc_testcampaign', -required='campaignid', -optional='email_addresses', -optional='format', -optional='personal_message', -namespace=namespace_global);
 		local('required' = array('email_addresses','format','personal_message'));
 		local('form' = map);
 		iterate(params, local('param'));
@@ -179,7 +179,7 @@
 	// cc_getcampaignschedules('3');
 	// The ID can be a campaign number 3, the ID attribute of a Campaign record
 	// cc_getcampaignschedules(cc_findcampaigns()->get(1)->find('id'));
-	define_tag('cc_getcampaignschedules', -required='campaignid');
+	define_tag('cc_getcampaignschedules', -required='campaignid', -namespace=namespace_global);
 		return(cc_get('emailmarketing/campaigns/' + integer(#campaignid) + '/campaigns'));
 	/define_tag;
 
