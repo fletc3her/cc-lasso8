@@ -62,7 +62,7 @@
 	// cc_date()
 	// Utility function returns properly formatted date string
 	// Manual format (GMT): %Q or %QT%T
-	// http://developer.constantcontact.com/docs/developer-guides/general-considerations.html
+	// http://v2.developer.constantcontact.com/docs/developer-guides/general-considerations.html
 	define_tag('cc_date', -optional='date', -namespace=namespace_global);
 		local('_format' = '%QT%T');
 
@@ -81,7 +81,7 @@
 
 	// cc_dateparse()
 	// Utility function returns Lasso date from date format used by CC
-	// http://developer.constantcontact.com/docs/developer-guides/general-considerations.html
+	// http://v2.developer.constantcontact.com/docs/developer-guides/general-considerations.html
 	define_tag('cc_dateparse', -optional='date', -namespace=namespace_global);
 		// Already a date object
 		#date->isa('date') ? return(#date);

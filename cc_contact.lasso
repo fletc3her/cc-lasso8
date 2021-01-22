@@ -6,7 +6,7 @@
 	// These tags allow contacts (individual end users) to be accessed. Requires the tags in the Constant
 	// Contact Utility Library cc.lasso.
 	//
-	// http://developer.constantcontact.com/docs/contacts-api/contacts-index.html
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contacts-index.html
 	//
 	// Copyright (c) 2014 by Fletcher Sandbeck
 	// Released Under MIT License http://fletc3her.mit-license.org/
@@ -15,7 +15,7 @@
 	//
 	// Find Contacts
 	//
-	// http://developer.constantcontact.com/docs/contacts-api/contacts-collection.html
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contacts-collection.html
 	//
 	// cc_findcontacts() All contacts
 	// -email='john@doe.com' // One email
@@ -48,7 +48,7 @@
 	//
 	// Get Contact
 	//
-	// http://developer.constantcontact.com/docs/contacts-api/contacts-resource.html
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contacts-resource.html
 	//
 	// cc_getcontact('35')
 	// The ID can be a contact number (35), the ID attribute of a Contact record
@@ -60,7 +60,7 @@
 	//
 	// Get Contact Tracking
 	//
-	// http://developer.constantcontact.com/docs/contact-tracking/contact-tracking-all-activities-api.html
+	// http://v2.developer.constantcontact.com/docs/contact-tracking/contact-tracking-all-activities-api.html
 	//
 	// cc_getcontacttracking('35')
 	// The ID is be a contact number (35), the ID attribute of a Contact record
@@ -96,8 +96,8 @@
 	// directly.
 	// The full list of values in a new template can be found here:
 	//
-	// http://developer.constantcontact.com/docs/contacts-api/contacts-collection.html?method=POST
-	// http://developer.constantcontact.com/docs/contacts-api/contacts-resource.html
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contacts-collection.html?method=POST
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contacts-resource.html
 	//
 	// Note - Do not add an ID member to a new contact or it will overwrite the contact with that ID
 	//
@@ -138,8 +138,8 @@
 	//
 	// The full list of possible parameters can be found here:
 	//
-	// http://developer.constantcontact.com/docs/contacts-api/contacts-collection.html?method=POST
-	// http://developer.constantcontact.com/docs/contacts-api/contacts-resource.html
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contacts-collection.html?method=POST
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contacts-resource.html
 	//
 	// Note - Do not add an ID member to a new contact or it will overwrite the contact with that ID
 	//
@@ -220,8 +220,8 @@
 	//
 	// The full list of possible parameters can be found here:
 	//
-	// http://developer.constantcontact.com/docs/contacts-api/contacts-collection.html?method=POST
-	// http://developer.constantcontact.com/docs/contacts-api/contacts-resource.html
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contacts-collection.html?method=POST
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contacts-resource.html
 	//
 	// Note - Do not add an ID member to a new contact or it will overwrite the contact with that ID
 	//
@@ -283,8 +283,8 @@
 	//
 	// Put Contact or Post New Contact
 	//
-	// http://developer.constantcontact.com/docs/contacts-api/contacts-resource.html
-	// http://developer.constantcontact.com/docs/contacts-api/contacts-collection.html?method=POST
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contacts-resource.html
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contacts-collection.html?method=POST
 	//
 	// cc_putcontact(map)
 	// -by='owner' // Default, action by list owner (email sender)
@@ -308,7 +308,7 @@
 	//
 	// Delete Contact
 	//
-	// http://developer.constantcontact.com/docs/contacts-api/contacts-resource.html
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contacts-resource.html
 	//
 	// cc_deletecontact(id)
 	// cc_deletecontact(map)

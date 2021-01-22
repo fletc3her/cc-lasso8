@@ -6,7 +6,7 @@
 	// These tags allow contact lists (subscribers to campaigns) to be accessed. Requires the tags in the
 	// Constant Contact Utility Library cc.lasso.
 	//
-	// http://developer.constantcontact.com/docs/contact-list-api/contactlist-collection.html
+	// http://v2.developer.constantcontact.com/docs/contact-list-api/contactlist-collection.html
 	//
 	// Copyright (c) 2014 by Fletcher Sandbeck
 	// Released Under MIT License http://fletc3her.mit-license.org/
@@ -15,7 +15,7 @@
 	//
 	// Find Lists
 	//
-	// http://developer.constantcontact.com/docs/contacts-api/contacts-collection.html
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contacts-collection.html
 	//
 	// cc_findlists() // All lists
 	// -modified_since=date
@@ -28,7 +28,7 @@
 	//
 	// Get List
 	//
-	// http://developer.constantcontact.com/docs/contact-list-api/contactlist-collection.html
+	// http://v2.developer.constantcontact.com/docs/contact-list-api/contactlist-collection.html
 	//
 	// cc_getlist('3')
 	// The ID can be a list number (3), the ID attribute of a List record
@@ -49,8 +49,8 @@
 	//
 	// Returns a minimal template map for a new list. Requires a list name and a status (VISIBLE or HIDDEN)
 	//
-	// http://developer.constantcontact.com/docs/contacts-api/contactlist-collection.html?method=POST
-	// http://developer.constantcontact.com/docs/contacts-api/contactlist-resource.html
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contactlist-collection.html?method=POST
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contactlist-resource.html
 	//
 	// Note - Do not add an ID member to a new list or it will overwrite the list with that ID
 	//
@@ -72,8 +72,8 @@
 	//
 	// Put List or Post New List
 	//
-	// http://developer.constantcontact.com/docs/contacts-api/contactlist-collection.html?method=POST
-	// http://developer.constantcontact.com/docs/contacts-api/contactlist-resource.html
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contactlist-collection.html?method=POST
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contactlist-resource.html
 	//
 	// cc_putlist(map)
 	// expects the output of cc_getlist (or cc_newlist) as input
@@ -92,7 +92,7 @@
 	//
 	// Delete List
 	//
-	// http://developer.constantcontact.com/docs/contacts-api/contactlist-resource.html
+	// http://v2.developer.constantcontact.com/docs/contacts-api/contactlist-resource.html
 	//
 	// cc_deletecontact(id)
 	// cc_deletecontact(map)

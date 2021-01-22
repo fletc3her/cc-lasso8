@@ -6,7 +6,7 @@
 	// These tags allow campaigns (individual messages sent to contact lists) to be accessed. Requires the tags
 	// in the Constant Contact Utility Library cc.lasso.
 	//
-	// http://developer.constantcontact.com/docs/email-campaigns/email-campaign-api-index.html
+	// http://v2.developer.constantcontact.com/docs/email-campaigns/email-campaign-api-index.html
 	//
 	// Copyright (c) 2014 by Fletcher Sandbeck
 	// Released Under MIT License http://fletc3her.mit-license.org/
@@ -15,7 +15,7 @@
 	//
 	// Find Campaigns
 	//
-	// http://developer.constantcontact.com/docs/email-campaigns/email-campaigns-collection.html
+	// http://v2.developer.constantcontact.com/docs/email-campaigns/email-campaigns-collection.html
 	//
 	// cc_findcampaigns() // All campaigns
 	// -modified_since=date
@@ -71,7 +71,7 @@
 	//
 	// There are many other parameters which can be specified.  See the online help for a list.
 
-	// http://developer.constantcontact.com/docs/email-campaigns/email-campaigns-collection.html?method=POST
+	// http://v2.developer.constantcontact.com/docs/email-campaigns/email-campaigns-collection.html?method=POST
 	//
 	// Note - Do not add an ID member to a new campaign or it will overwrite the campaign with that ID
 	//
