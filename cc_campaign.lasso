@@ -57,6 +57,32 @@
 	/define_tag;
 
 	//
+	// Get Campaign Tracking
+	//
+	// Fetches tracking records for a campaign. A "type" is required and the fields returned differ
+	// based on the type. See details here at the documentation URL.
+	//
+	// https://v2.developer.constantcontact.com/docs/campaign-tracking/email-campaign-tracking-.html
+	//
+	// cc_getcampaigntracking(cc_findcampaigns()->get(1)->find('id'), 'bounces')
+	// -campaignid='3' // The ID of a campaign (required)
+	// -type='bounces|clicks|forwards|opens|sends|unsubscribes'
+	// -created_since=date
+	// -limit=50 // Max records, default 50
+	// -next={pagination} // Use cc_next to extract from results
+	define_tag('cc_getcampaigntracking', -required='campaignid', -required='type', -optional='modified_since', -optional='limit', -optional='status', -optional='next');
+		fail_if(array('bounces','clicks','forwards','opens','sends','unsubscribes') !>> #type, -1, 'Unknown Campaign Tracking Type');
+		local('params' = array);
+		local_defined('created_since') && #modified_since != '' ? #params->insert('modified_since'=cc_date(#modified_since));
+		local_defined('limit') && #limit != '' ? #params->insert('limit'=#limit);
+		if(local_defined('next') && #next != '');
+			#params = array('next'=#next);
+		/if;
+		return(cc_get('emailmarketing/campaigns/' + integer(#campaignid) + '/tracking/' + encode_stricturl(#type), -params=#params));
+	/define_tag;
+
+
+	//
 	// New Campaign Template
 	//
 	// Returns a minimal template map for a new campaign. Requires the following parameters:
