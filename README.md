@@ -7,7 +7,7 @@ A collection of custom tags for Lasso which provide integration with
 Constant Contact's V2 API.  The JSON payloads of the REST API are 
 automatically converted to/from native Lasso arrays and maps.
 
-http://developer.constantcontact.com/docs/developer-guides/overview-of-api-endpoints.html
+http://v2.developer.constantcontact.com/docs/developer-guides/overview-of-api-endpoints.html
 
 
 License
